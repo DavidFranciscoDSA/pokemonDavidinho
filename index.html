@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PokéMemory FullScreen</title>
+    <style>
+        :root {
+            --primary: #ffcb05;
+            --secondary: #3b4cca;
+            --bg: #131313;
+        }
+
+        /* Bloqueia o scroll e centraliza tudo */
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: radial-gradient(circle, #2c3e50 0%, #000000 100%);
+            color: white;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh; /* Ocupa exatamente a altura da tela */
+            box-sizing: border-box;
+            overflow: hidden; /* Remove scroll */
+        }
+
+        h2 { 
+            color: var(--primary); 
+            text-shadow: 2px 2px var(--secondary); 
+            margin: 5px 0;
+            font-size: clamp(1.2rem, 5vw, 2rem); /* Fonte diminui em telas menores */
+        }
+
+        #status { 
+            font-size: 0.9rem; 
+            margin-bottom: 10px; 
+            color: #fff;
+            text-align: center;
+        }
+
+        .menu { 
+            display: flex; 
+            gap: 5px; 
+            margin-bottom: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        button {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid var(--secondary);
+            background: var(--primary);
+            border-radius: 6px;
+        }
+
+        /* Grade que se ajusta à altura disponível */
+        #game-board {
+            display: grid;
+            gap: 5px;
+            width: 100%;
+            max-width: 500px;
+            /* O segredo: a altura do tabuleiro é limitada à tela */
+            height: 65vh; 
+            margin: auto 0;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--secondary);
+        }
+
+        .card-back {
+            background: #2a2a2a;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .card-front {
+            background: white;
+            transform: rotateY(180deg);
+        }
+
+        .card-front img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .matched { opacity: 0.2; pointer-events: none; transition: 0.5s; }
+    </style>
+</head>
+<body>
+
+    <h2>PokéMemory</h2>
+    <div id="status">Escolha o nível</div>
+    
+    <div class="menu">
+        <button onclick="startGame(16, 4)">Fácil</button>
+        <button onclick="startGame(24, 4)">Médio</button>
+        <button onclick="startGame(32, 4)">Difícil</button>
+    </div>
+
+    <div id="game-board"></div>
+
+    <script>
+        const board = document.getElementById('game-board');
+        const statusText = document.getElementById('status');
+        let flippedCards = [];
+        let canClick = false;
+
+        const pokemonIds = [25, 1, 4, 7, 133, 150, 94, 143, 149, 448, 39, 175, 54, 52, 59, 131];
+
+        function startGame(numCards, cols) {
+            board.innerHTML = '';
+            flippedCards = [];
+            canClick = false;
+            statusText.innerText = "Memorize! (6s)";
+
+            // Define colunas e linhas dinamicamente para caber na tela
+            const rows = numCards / cols;
+            board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+            let selectedIds = pokemonIds.slice(0, numCards / 2);
+            let gameItems = [...selectedIds, ...selectedIds].sort(() => Math.random() - 0.5);
+
+            gameItems.forEach(id => {
+                const card = document.createElement('div');
+                card.classList.add('card', 'flipped');
+                const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+                
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-back">?</div>
+                        <div class="card-front"><img src="${imgUrl}"></div>
+                    </div>`;
+                
+                card.dataset.id = id;
+                card.onclick = () => flipCard(card);
+                board.appendChild(card);
+            });
+
+            setTimeout(() => {
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
+                canClick = true;
+                statusText.innerText = "Encontre os pares!";
+            }, 6000);
+        }
+
+        function flipCard(card) {
+            if (!canClick || card.classList.contains('flipped') || flippedCards.length === 2) return;
+            card.classList.add('flipped');
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                const [c1, c2] = flippedCards;
+                if (c1.dataset.id === c2.dataset.id) {
+                    c1.classList.add('matched');
+                    c2.classList.add('matched');
+                    flippedCards = [];
+                    if (document.querySelectorAll('.matched').length === document.querySelectorAll('.card').length) {
+                        statusText.innerText = "🏆 Vitória!";
+                    }
+                } else {
+                    canClick = false;
+                    setTimeout(() => {
+                        c1.classList.remove('flipped');
+                        c2.classList.remove('flipped');
+                        flippedCards = [];
+                        canClick = true;
+                    }, 800);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
