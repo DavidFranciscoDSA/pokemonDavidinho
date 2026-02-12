@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PokéMemory FullScreen</title>
+    <title>PokéMemory Pro</title>
     <style>
         :root {
             --primary: #ffcb05;
             --secondary: #3b4cca;
             --bg: #131313;
+            --success: #2ecc71;
         }
 
-        /* Bloqueia o scroll e centraliza tudo */
         body {
             font-family: 'Segoe UI', sans-serif;
             background: radial-gradient(circle, #2c3e50 0%, #000000 100%);
@@ -21,33 +21,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            height: 100vh; /* Ocupa exatamente a altura da tela */
+            height: 100vh;
+            overflow: hidden;
             box-sizing: border-box;
-            overflow: hidden; /* Remove scroll */
         }
 
-        h2 { 
-            color: var(--primary); 
-            text-shadow: 2px 2px var(--secondary); 
-            margin: 5px 0;
-            font-size: clamp(1.2rem, 5vw, 2rem); /* Fonte diminui em telas menores */
-        }
+        h2 { color: var(--primary); text-shadow: 2px 2px var(--secondary); margin: 5px 0; font-size: 1.5rem; }
 
-        #status { 
-            font-size: 0.9rem; 
-            margin-bottom: 10px; 
-            color: #fff;
-            text-align: center;
-        }
-
-        .menu { 
-            display: flex; 
-            gap: 5px; 
-            margin-bottom: 10px;
-            width: 100%;
-            justify-content: center;
-        }
+        .menu { display: flex; gap: 5px; margin-bottom: 10px; }
 
         button {
             padding: 8px 12px;
@@ -57,24 +38,21 @@
             border: 2px solid var(--secondary);
             background: var(--primary);
             border-radius: 6px;
+            transition: 0.2s;
         }
 
-        /* Grade que se ajusta à altura disponível */
+        button:active { transform: scale(0.95); }
+
         #game-board {
             display: grid;
-            gap: 5px;
+            gap: 6px;
             width: 100%;
-            max-width: 500px;
-            /* O segredo: a altura do tabuleiro é limitada à tela */
-            height: 65vh; 
+            max-width: 450px;
+            height: 65vh;
             margin: auto 0;
         }
 
-        .card {
-            width: 100%;
-            height: 100%;
-            perspective: 1000px;
-        }
+        .card { perspective: 1000px; width: 100%; height: 100%; }
 
         .card-inner {
             position: relative;
@@ -91,37 +69,52 @@
             width: 100%;
             height: 100%;
             backface-visibility: hidden;
-            border-radius: 6px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 1px solid var(--secondary);
+            border: 2px solid var(--secondary);
         }
 
-        .card-back {
-            background: #2a2a2a;
-            color: var(--primary);
-            font-size: 1.2rem;
+        .card-back { background: #2a2a2a; color: var(--primary); font-size: 1.5rem; }
+
+        .card-front { background: white; transform: rotateY(180deg); }
+
+        .card-front img { max-width: 85%; max-height: 85%; object-fit: contain; }
+
+        /* Estilo quando encontra o par: Mantém claro e brilha */
+        .matched .card-front {
+            border: 3px solid var(--success);
+            box-shadow: 0 0 15px var(--success);
+            animation: pulse 1s infinite alternate;
         }
 
-        .card-front {
-            background: white;
-            transform: rotateY(180deg);
+        @keyframes pulse {
+            from { transform: rotateY(180deg) scale(1); }
+            to { transform: rotateY(180deg) scale(1.05); }
         }
 
-        .card-front img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
+        /* Tela de Vitória */
+        #victory-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
         }
 
-        .matched { opacity: 0.2; pointer-events: none; transition: 0.5s; }
+        #victory-screen h1 { color: var(--primary); font-size: 3rem; margin: 0; }
+        #victory-screen p { font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-    <h2>PokéMemory - Davidinho</h2>
-    <div id="status">Escolha o nível</div>
+    <h2>PokéMemory</h2>
+    <div id="status">Memorize! 6 segundos...</div>
     
     <div class="menu">
         <button onclick="startGame(16, 4)">Fácil</button>
@@ -131,21 +124,29 @@
 
     <div id="game-board"></div>
 
+    <div id="victory-screen">
+        <h1>🏆</h1>
+        <h1>PARABÉNS!</h1>
+        <p>Você é um Mestre Pokémon!</p>
+        <button onclick="closeVictory()" style="margin-top:20px; padding: 15px 30px; font-size: 1rem;">Jogar Novamente</button>
+    </div>
+
     <script>
         const board = document.getElementById('game-board');
         const statusText = document.getElementById('status');
+        const victoryScreen = document.getElementById('victory-screen');
         let flippedCards = [];
         let canClick = false;
 
         const pokemonIds = [25, 1, 4, 7, 133, 150, 94, 143, 149, 448, 39, 175, 54, 52, 59, 131];
 
         function startGame(numCards, cols) {
+            victoryScreen.style.display = 'none';
             board.innerHTML = '';
             flippedCards = [];
             canClick = false;
-            statusText.innerText = "Memorize! (6s)";
+            statusText.innerText = "Memorize os Pokémon!";
 
-            // Define colunas e linhas dinamicamente para caber na tela
             const rows = numCards / cols;
             board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
             board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
@@ -172,7 +173,7 @@
             setTimeout(() => {
                 document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped'));
                 canClick = true;
-                statusText.innerText = "Encontre os pares!";
+                statusText.innerText = "Sua vez!";
             }, 6000);
         }
 
@@ -187,9 +188,7 @@
                     c1.classList.add('matched');
                     c2.classList.add('matched');
                     flippedCards = [];
-                    if (document.querySelectorAll('.matched').length === document.querySelectorAll('.card').length) {
-                        statusText.innerText = "🏆 Vitória!";
-                    }
+                    checkWin();
                 } else {
                     canClick = false;
                     setTimeout(() => {
@@ -201,7 +200,22 @@
                 }
             }
         }
+
+        function checkWin() {
+            const matched = document.querySelectorAll('.matched').length;
+            const total = document.querySelectorAll('.card').length;
+            if (matched === total) {
+                setTimeout(() => {
+                    victoryScreen.style.display = 'flex';
+                }, 500);
+            }
+        }
+
+        function closeVictory() {
+            victoryScreen.style.display = 'none';
+            statusText.innerText = "Escolha um nível!";
+            board.innerHTML = '';
+        }
     </script>
 </body>
-
 </html>
