@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PokéMemory Pro</title>
+    <title>PokéMemory - Final Video Fix</title>
     <style>
         :root {
             --primary: #ffcb05;
@@ -16,73 +16,43 @@
             font-family: 'Segoe UI', sans-serif;
             background: radial-gradient(circle, #2c3e50 0%, #000000 100%);
             color: white;
-            margin: 0;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            box-sizing: border-box;
+            margin: 0; padding: 10px;
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; overflow: hidden; box-sizing: border-box;
         }
 
         h2 { color: var(--primary); text-shadow: 2px 2px var(--secondary); margin: 5px 0; font-size: 1.5rem; }
-
         .menu { display: flex; gap: 5px; margin-bottom: 10px; }
 
         button {
-            padding: 8px 12px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            cursor: pointer;
-            border: 2px solid var(--secondary);
-            background: var(--primary);
-            border-radius: 6px;
-            transition: 0.2s;
+            padding: 8px 12px; font-size: 0.8rem; font-weight: bold;
+            cursor: pointer; border: 2px solid var(--secondary);
+            background: var(--primary); border-radius: 6px; transition: 0.2s;
         }
 
         button:active { transform: scale(0.95); }
 
         #game-board {
-            display: grid;
-            gap: 6px;
-            width: 100%;
-            max-width: 450px;
-            height: 65vh;
-            margin: auto 0;
+            display: grid; gap: 6px; width: 100%;
+            max-width: 450px; height: 65vh; margin: auto 0;
         }
 
         .card { perspective: 1000px; width: 100%; height: 100%; }
-
         .card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.5s;
-            transform-style: preserve-3d;
+            position: relative; width: 100%; height: 100%;
+            transition: transform 0.5s; transform-style: preserve-3d;
         }
-
         .card.flipped .card-inner { transform: rotateY(180deg); }
-
         .card-front, .card-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            backface-visibility: hidden;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
             border: 2px solid var(--secondary);
         }
-
         .card-back { background: #2a2a2a; color: var(--primary); font-size: 1.5rem; }
-
         .card-front { background: white; transform: rotateY(180deg); }
-
         .card-front img { max-width: 85%; max-height: 85%; object-fit: contain; }
 
-        /* Estilo quando encontra o par: Mantém claro e brilha */
         .matched .card-front {
             border: 3px solid var(--success);
             box-shadow: 0 0 15px var(--success);
@@ -94,27 +64,20 @@
             to { transform: rotateY(180deg) scale(1.05); }
         }
 
-        /* Tela de Vitória */
         #victory-screen {
-            display: none;
-            position: fixed;
+            display: none; position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            text-align: center;
+            background: #000; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 100;
         }
 
-        #victory-screen h1 { color: var(--primary); font-size: 3rem; margin: 0; }
-        #victory-screen p { font-size: 1.2rem; }
+        #victory-video { width: 100%; max-width: 800px; height: auto; outline: none; }
     </style>
 </head>
 <body>
 
     <h2>PokéMemory</h2>
-    <div id="status">Memorize! 6 segundos...</div>
+    <div id="status">Selecione a dificuldade</div>
     
     <div class="menu">
         <button onclick="startGame(16, 4)">Fácil</button>
@@ -125,27 +88,47 @@
     <div id="game-board"></div>
 
     <div id="victory-screen">
-        <h1>🏆</h1>
-        <h1>PARABÉNS!</h1>
-        <p>Você é um Mestre Pokémon!</p>
-        <button onclick="closeVictory()" style="margin-top:20px; padding: 15px 30px; font-size: 1rem;">Jogar Novamente</button>
+        <video id="victory-video" playsinline muted preload="auto">
+            <source src="vitoria_ash.mp4" type="video/mp4">
+        </video>
     </div>
 
     <script>
         const board = document.getElementById('game-board');
         const statusText = document.getElementById('status');
         const victoryScreen = document.getElementById('victory-screen');
+        const victoryVideo = document.getElementById('victory-video');
+        
         let flippedCards = [];
         let canClick = false;
+        
+        // Removida a tentativa de carregar abertura.mp3 já que você não tem o arquivo
+        let bgMusic = null; 
 
-        const pokemonIds = [25, 1, 4, 7, 133, 150, 94, 143, 149, 448, 39, 175, 54, 52, 59, 131];
+        const pokemonNames = {
+            25: "Pikachu", 1: "Bulbasaur", 4: "Charmander", 7: "Squirtle", 
+            133: "Eevee", 150: "Mewtwo", 94: "Gengar", 143: "Snorlax", 
+            149: "Dragonite", 448: "Lucario", 39: "Jigglypuff", 175: "Togepi", 
+            54: "Psyduck", 52: "Meowth", 59: "Arcanine", 131: "Lapras"
+        };
+
+        const pokemonIds = Object.keys(pokemonNames).map(Number);
+
+        function speakName(name) {
+            const utterance = new SpeechSynthesisUtterance(name);
+            utterance.lang = 'en-US';
+            window.speechSynthesis.speak(utterance);
+        }
 
         function startGame(numCards, cols) {
             victoryScreen.style.display = 'none';
+            victoryVideo.pause();
+            victoryVideo.currentTime = 0;
+            
             board.innerHTML = '';
             flippedCards = [];
             canClick = false;
-            statusText.innerText = "Memorize os Pokémon!";
+            statusText.innerText = "Memorize! 6 segundos...";
 
             const rows = numCards / cols;
             board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
@@ -179,8 +162,10 @@
 
         function flipCard(card) {
             if (!canClick || card.classList.contains('flipped') || flippedCards.length === 2) return;
+            
             card.classList.add('flipped');
             flippedCards.push(card);
+            speakName(pokemonNames[card.dataset.id]);
 
             if (flippedCards.length === 2) {
                 const [c1, c2] = flippedCards;
@@ -204,18 +189,31 @@
         function checkWin() {
             const matched = document.querySelectorAll('.matched').length;
             const total = document.querySelectorAll('.card').length;
-            if (matched === total) {
+            if (matched === total && total > 0) {
                 setTimeout(() => {
                     victoryScreen.style.display = 'flex';
+                    
+                    // Reset e Play
+                    victoryVideo.currentTime = 0;
+                    victoryVideo.muted = false; 
+                    
+                    const playPromise = victoryVideo.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.log("Autoplay barrado, tentando mudo...");
+                            victoryVideo.muted = true;
+                            victoryVideo.play();
+                        });
+                    }
                 }, 500);
             }
         }
 
-        function closeVictory() {
+        victoryVideo.onended = function() {
             victoryScreen.style.display = 'none';
-            statusText.innerText = "Escolha um nível!";
+            statusText.innerText = "Parabéns, Mestre!";
             board.innerHTML = '';
-        }
+        };
     </script>
 </body>
 </html>
