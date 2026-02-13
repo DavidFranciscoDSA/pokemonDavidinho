@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PokéMemory - Final Video Fix</title>
+    <title>PokéMemory - Fullscreen Victory</title>
     <style>
         :root {
             --primary: #ffcb05;
@@ -64,14 +64,22 @@
             to { transform: rotateY(180deg) scale(1.05); }
         }
 
+        /* TELA DE VITÓRIA EM TELA CHEIA */
         #victory-screen {
-            display: none; position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 100;
+            display: none; 
+            position: fixed;
+            top: 0; left: 0; 
+            width: 100vw; height: 100vh;
+            background: #000; 
+            z-index: 9999;
         }
 
-        #victory-video { width: 100%; max-width: 800px; height: auto; outline: none; }
+        #victory-video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; /* Faz o vídeo preencher a tela inteira sem sobrar espaço */
+            outline: none; 
+        }
     </style>
 </head>
 <body>
@@ -101,9 +109,6 @@
         
         let flippedCards = [];
         let canClick = false;
-        
-        // Removida a tentativa de carregar abertura.mp3 já que você não tem o arquivo
-        let bgMusic = null; 
 
         const pokemonNames = {
             25: "Pikachu", 1: "Bulbasaur", 4: "Charmander", 7: "Squirtle", 
@@ -191,16 +196,14 @@
             const total = document.querySelectorAll('.card').length;
             if (matched === total && total > 0) {
                 setTimeout(() => {
-                    victoryScreen.style.display = 'flex';
+                    victoryScreen.style.display = 'block'; // Exibe a div de tela cheia
                     
-                    // Reset e Play
                     victoryVideo.currentTime = 0;
                     victoryVideo.muted = false; 
                     
                     const playPromise = victoryVideo.play();
                     if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.log("Autoplay barrado, tentando mudo...");
+                        playPromise.catch(() => {
                             victoryVideo.muted = true;
                             victoryVideo.play();
                         });
@@ -209,6 +212,7 @@
             }
         }
 
+        // Evento que limpa tudo quando o vídeo do Ash termina
         victoryVideo.onended = function() {
             victoryScreen.style.display = 'none';
             statusText.innerText = "Parabéns, Mestre!";
